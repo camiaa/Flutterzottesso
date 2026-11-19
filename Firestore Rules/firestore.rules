@@ -1,0 +1,76 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // ============================================================================
+    // REGRAS DE SEGURANÇA E VALIDAÇÃO DE DADOS - PADARIA HORA PÃES
+    // Atividade Avaliativa - Tópicos Especiais em Tecnologia (Prof. Rafael Zottesso)
+    // ============================================================================
+
+    // Validação para a Entidade 1: Produto
+    function isValidProduto(data) {
+      return data.keys().hasAll(['nome', 'preco', 'categoria'])
+        && data.nome is string
+        && data.nome.size() >= 2
+        && data.nome.size() <= 100
+        && data.preco is number
+        && data.preco > 0
+        && data.categoria is string
+        && data.categoria.size() > 0
+        && (!('descricao' in data) || data.descricao is string)
+        && (!('data_criacao' in data) || data.data_criacao is timestamp);
+    }
+
+    // Validação para a Entidade 2: Cliente
+    function isValidCliente(data) {
+      return data.keys().hasAll(['nome', 'telefone', 'email'])
+        && data.nome is string
+        && data.nome.size() >= 3
+        && data.nome.size() <= 100
+        && data.telefone is string
+        && data.telefone.size() >= 8
+        && data.email is string
+        && data.email.matches('.*@.*')
+        && (!('endereco' in data) || data.endereco is string)
+        && (!('data_criacao' in data) || data.data_criacao is timestamp);
+    }
+
+    // ----------------------------------------------------------------------------
+    // Coleção 1: produtos (Entidade 1)
+    // Leitura: pública (Everyone) para listagem no app
+    // Criação: pública (Everyone) com validação estrita de segurança e tipos
+    // Atualização: permitida com dados válidos
+    // Exclusão: bloqueada por segurança
+    // ----------------------------------------------------------------------------
+    match /produtos/{document} {
+      allow read: if true;
+      allow create: if isValidProduto(request.resource.data);
+      allow update: if isValidProduto(request.resource.data);
+      allow delete: if false;
+    }
+
+    // ----------------------------------------------------------------------------
+    // Coleção 2: clientes (Entidade 2)
+    // Leitura: pública (Everyone) para listagem no app
+    // Criação: pública (Everyone) com validação estrita de segurança e tipos
+    // Atualização: permitida com dados válidos
+    // Exclusão: bloqueada por segurança
+    // ----------------------------------------------------------------------------
+    match /clientes/{document} {
+      allow read: if true;
+      allow create: if isValidCliente(request.resource.data);
+      allow update: if isValidCliente(request.resource.data);
+      allow delete: if false;
+    }
+
+    // ----------------------------------------------------------------------------
+    // Coleção legada: atividade
+    // ----------------------------------------------------------------------------
+    match /atividade/{document} {
+      allow create: if true;
+      allow read: if true;
+      allow write: if true;
+      allow delete: if true;
+    }
+  }
+}
